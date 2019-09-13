@@ -1,0 +1,9 @@
+---
+Gemfile:
+  required:
+    ':development':
+      - gem: 'puppet-resource_api'
+      - gem: 'net-ldap'
+        version: '0.16.1'
+spec/spec_helper.rb:
+  mock_with: ':rspec'
