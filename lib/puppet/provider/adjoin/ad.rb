@@ -73,9 +73,12 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
     ldap = new_ldap
     search_result = []
     search = ldap.search( :base => treebase, :filter => filter, :attributes => attrs, :return_result => true ) # do |entry|
- #     search_result << entry.sAMAccountName
- #   end
-    search[0].sAMAccountName[0] == computer_sam
+    unless search.count == 0
+      return_value = search[0].sAMAccountName[0] == computer_sam
+    else
+      return_value = false
+    end
+    return_value
   end
 
   def create
