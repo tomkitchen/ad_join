@@ -1,7 +1,7 @@
+require 'puppet/resource_api/simple_provider'
 require 'socket'
 require 'net/ldap'
 require 'rubygems'
-require 'puppet/provider/ldap'
 require 'puppet/util/ldap'
 puts $LOAD_PATH
 #ad_port = 389
@@ -35,10 +35,7 @@ puts $LOAD_PATH
  
 
 # Implementation for the ldap type using the Resource API.
-class Puppet::Provider::Ldap::adjoin < Puppet::Provider::Ldap
-  def exists?
-  end
-
+class Puppet::Provider::Ldap::Ldap < Puppet::ResourceApi::SimpleProvider
   def bind(context)
     #check that we can connect to the ldap server
     ldap Net::LDAP.new( :host => ad_host, :port => ad_port, :auth => auth )
