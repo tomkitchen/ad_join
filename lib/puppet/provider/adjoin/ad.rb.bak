@@ -36,9 +36,6 @@ require 'yaml'
 #ldap = Puppet::Provider::Ldap.manages
 #puts @resource
 Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
-
-  mk_resource_methods
-
 #  Puppet::Provider::Ldap.manager
   #username = "tom"
   #username = resource[:user]
@@ -53,6 +50,8 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
 #dn = "CN=#{hostname},#{computers_dn}"
 
   def self.bind(username, password, host, port)
+#    auth = {:method => :simple, :username => username, :password => password}
+#    ldap = Net::LDAP.new( :host => host, :port => port, :auth => auth )
     ldap = new_ldap
     ldap.bind
   end
@@ -63,62 +62,33 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
     ldap
   end
 
-  def self.get_domain_list
-    domain = {}
-    domain[:name] = "testing.com"
-    domain[:user] = "tom"
-    domain[:password] = "Kb-PwxS9.A>uFbL}"
-    domain[:port] = 389
-    domain
+  def set_vars
+    @test = "testing123"
   end
 
-  def self.get_adjoin_properties(username, password, host, port)
-    adjoin_properties = {}
-    ldap = new_ldap
+  def self.find_computer_object(host)
+
+  end
+
+  def exists?
+    puts @ad_port
     treebase = "dc=testing,dc=com"
     hostname = Socket.gethostname[/^[^.]+/]
     computer_sam = "#{hostname}$"
     filter = Net::LDAP::Filter.eq( "sAMAccountName", computer_sam )
     attrs = ["sAMAccountName"]
-    result = bind(username, password, host, 389)
+    result = bind(resource[:user], resource[:password], resource[:domain], 389)
+    ldap = new_ldap
     search_result = []
     search = ldap.search( :base => treebase, :filter => filter, :attributes => attrs, :return_result => true ) # do |entry|
-#    unless search.count == 0
-    adjoin_properties[:ensure] = search.count == 0 ? :absent : :present
-    adjoin_properties[:name] = host
-    adjoin_properties
-  end
-
-  def self.instances
-    get_domain_list do |int|
-      adjoin_properties = get_adjoin_properties(int.user, int.password, int.name, int.port)
-      new(adjoin_properties)
+    unless search.count == 0
+      return_value = search[0].sAMAccountName[0] == computer_sam
+    else
+      return_value = false
     end
+    return_value
+    false
   end
-
-  def exists?
-    @property_hash[:ensure] == :present
-  end
-
-#  def exists?
-#    puts @ad_port
-#    treebase = "dc=testing,dc=com"
-#    hostname = Socket.gethostname[/^[^.]+/]
-#    computer_sam = "#{hostname}$"
-#    filter = Net::LDAP::Filter.eq( "sAMAccountName", computer_sam )
-#    attrs = ["sAMAccountName"]
-#    result = bind(resource[:user], resource[:password], resource[:domain], 389)
-#    ldap = new_ldap
-#    search_result = []
-#    search = ldap.search( :base => treebase, :filter => filter, :attributes => attrs, :return_result => true )
-#    unless search.count == 0
-#      return_value = search[0].sAMAccountName[0] == computer_sam
-#    else
-#      return_value = false
-#    end
-#    return_value
-#    false
-#  end
 
   @test = "testing456"
 
