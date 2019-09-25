@@ -1,3 +1,4 @@
+# http://garylarizza.com/blog/2013/12/15/seriously-what-is-this-provider-doing/
 require 'socket'
 require 'net/ldap'
 require 'yaml'
@@ -36,8 +37,6 @@ require 'yaml'
 #puts @resource
 Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
 #  Puppet::Provider::Ldap.manager
-
-  ad_port = 389
   #username = "tom"
   #username = resource[:user]
   #password = "Kb-PwxS9.A>uFbL}"
@@ -63,7 +62,27 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
     ldap
   end
 
+  def set_vars
+    @test = "testing123"
+  end
+
+  def self.prefetch(resources)
+    puts "prefetch"
+#    users = instances
+    # rubocop:disable Lint/AssignmentInCondition
+    resources.keys.each do |name|
+#      if provider = users.find { |user| user.name == name }
+#        resources[name].provider = provider
+#      end
+      puts name
+      puts resources[name].provider
+    end
+    # rubocop:enable Lint/AssignmentInCondition]
+    puts "prefetch end"
+  end
+
   def exists?
+    puts @ad_port
     treebase = "dc=testing,dc=com"
     hostname = Socket.gethostname[/^[^.]+/]
     computer_sam = "#{hostname}$"
@@ -79,10 +98,15 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
       return_value = false
     end
     return_value
+    false
   end
+
+  @test = "testing456"
 
   def create
     puts "what"
+#    set_vars
+    puts @test
   end
 
   def destroy
