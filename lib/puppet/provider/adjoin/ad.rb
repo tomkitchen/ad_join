@@ -139,7 +139,6 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
       adjoin_properties = get_adjoin_properties(int[:user], int[:password], int[:name], 345)
       new(adjoin_properties)
     end
-    @@something = "somethings"
   end
 
   def get_instances
@@ -150,7 +149,6 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
 #  puts get_instances()
 
   def exists?
-    puts @@something
     puts "EXISTS_START"
     puts @provider_hash
     puts self.class.instances()
