@@ -53,7 +53,7 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
 #dn = "CN=#{hostname},#{computers_dn}"
 
   def self.bind(username, password, host, port)
-    ldap = new_ldap
+    ldap = new_ldap(username, password, host, port)
     ldap.bind
   end
 
@@ -66,35 +66,39 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
   def self.get_domain_list
     domains = []
     domain = {}
-    domain[:name] = "testing.com"
-    domain[:user] = "tom"
-    domain[:password] = "Kb-PwxS9.A>uFbL}"
-    domain[:port] = 389
+    domain["name"] = "testing.com"
+    domain["user"] = "tom"
+    domain["password"] = "Kb-PwxS9.A>uFbL}"
+    domain["port"] = "389"
     domain1 = {}
-    domain1[:name] = "1testing.com"
-    domain1[:user] = "1tom"
-    domain1[:password] = "1Kb-PwxS9.A>uFbL}"
-    domain1[:port] = 1389
+    domain1["name"] = "1testing.com"
+    domain1["user"] = "1tom"
+    domain1["password"] = "1Kb-PwxS9.A>uFbL}"
+    domain1["port"] = "1389"
     domains << domain
     domains << domain1
     domains
   end
 
-  def self.prefetch(resources)
+#  def self.prefetch(resources)
     # Not the usual way we would use prefetch. See real_prefetch.
     # Using this method to return a list of catalogue resources.
     # We need this list as domains joined is not a property of the machine, rather an entry in some other ldap server,
     # so we only want to check for domains listed in the catalogue
 
-    resources
-  end
+#    resources
+#  end
 
   def self.prefetch(resources)
-#    instances.each do |prov|
-#      if resource = resources[prov.name]
-#        resource.provider = prov
-#      end
-#    end
+    if resource = resources["testing.com"]
+      puts resource.methods
+      puts resource.original_parameters[:user]
+    end
+    instances().each do |prov|
+      if resource = resources[prov.name]
+        resource.provider = prov
+      end
+    end
   end
 
   def self.real_prefetch
@@ -116,42 +120,39 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
 
   def self.get_adjoin_properties(username, password, host, port)
     adjoin_properties = {}
-    ldap = new_ldap
+    puts "GET_ADJOIN_PROPERTIES"
+    puts username
+    ldap = new_ldap(username, password, host, port)
     treebase = "dc=testing,dc=com"
     hostname = Socket.gethostname[/^[^.]+/]
     computer_sam = "#{hostname}$"
     filter = Net::LDAP::Filter.eq( "sAMAccountName", computer_sam )
+    puts "WTF"
     attrs = ["sAMAccountName"]
     result = bind(username, password, host, 389)
     search_result = []
     search = ldap.search( :base => treebase, :filter => filter, :attributes => attrs, :return_result => true ) # do |entry|
-    puts  search.count
+    puts search.count
     adjoin_properties[:ensure] = search.count == 0 ? :absent : :present
     adjoin_properties[:domain] = host
     puts adjoin_properties
     return adjoin_properties
   end
 
-  def self.instances
+  def self.instances(resources)
     notice("SELF.INSTANCES")
-    get_domain_list do |int|
-      puts int
-      adjoin_properties = get_adjoin_properties(int[:user], int[:password], int[:name], 345)
+    get_domain_list.each do |int|
+      puts int["user"]
+      adjoin_properties = get_adjoin_properties(int["user"], int["password"], int["name"], int["port"])
       new(adjoin_properties)
     end
   end
 
-  def get_instances
-    "GET_INSTANCES"
-#    puts self.class.instances()
-  end
-
-#  puts get_instances()
-
   def exists?
+    
     puts "EXISTS_START"
+#    puts self.class.instances()
     puts @provider_hash
-    puts self.class.instances()
     puts "EXISTS: #{resource[:name]}"
     puts @property_hash[:ensure]
     @property_hash[:ensure] == :present
