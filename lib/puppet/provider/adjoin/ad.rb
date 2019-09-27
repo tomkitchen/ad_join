@@ -80,70 +80,59 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
     domains
   end
 
-#  def self.prefetch(resources)
-    # Not the usual way we would use prefetch. See real_prefetch.
-    # Using this method to return a list of catalogue resources.
-    # We need this list as domains joined is not a property of the machine, rather an entry in some other ldap server,
-    # so we only want to check for domains listed in the catalogue
-
-#    resources
-#  end
-
   def self.prefetch(resources)
     if resource = resources["testing.com"]
-      puts resource.methods
       puts resource.original_parameters[:user]
+      puts resource.provider 
     end
-    instances().each do |prov|
-      if resource = resources[prov.name]
+    instances(resources).each do |prov|
+      puts prov.to_json
+      resource_name = prov[:name]
+      puts prov.keys
+      puts "~~~~~~#{resource_name}"
+      if resource = resources[resource_name]
+        puts "true"
+        puts resource.provider
         resource.provider = prov
+        puts "prov set"
       end
     end
   end
 
-  def self.real_prefetch
-    resources = prefetch()
-    puts "PREFETCH:"
-    resources.each do |resource|
-      puts resource
-    end
-    this_resource = resources["testing.com"]
-    puts this_resource.provider
-    puts "PREFETCH END:"
-#    puts resources[]
-#    instances.each do |prov|
-#      if resource = resources[prov.name]
-#        resource.provider = prov
-#      end
-#    end
-  end
-
   def self.get_adjoin_properties(username, password, host, port)
     adjoin_properties = {}
-    puts "GET_ADJOIN_PROPERTIES"
-    puts username
     ldap = new_ldap(username, password, host, port)
     treebase = "dc=testing,dc=com"
     hostname = Socket.gethostname[/^[^.]+/]
     computer_sam = "#{hostname}$"
     filter = Net::LDAP::Filter.eq( "sAMAccountName", computer_sam )
-    puts "WTF"
     attrs = ["sAMAccountName"]
     result = bind(username, password, host, 389)
     search_result = []
     search = ldap.search( :base => treebase, :filter => filter, :attributes => attrs, :return_result => true ) # do |entry|
-    puts search.count
     adjoin_properties[:ensure] = search.count == 0 ? :absent : :present
     adjoin_properties[:domain] = host
-    puts adjoin_properties
     return adjoin_properties
   end
 
-  def self.instances(resources)
-    notice("SELF.INSTANCES")
-    get_domain_list.each do |int|
-      puts int["user"]
-      adjoin_properties = get_adjoin_properties(int["user"], int["password"], int["name"], int["port"])
+  def self.instances(resources = nil)
+    domain_list = []
+    if resources
+      puts "INSTANCES_WITH_RESOURCES"
+      resources.keys.each do |resource|
+        domain = {}
+        domain[:name] = resource
+        domain[:user] = resources[resource].original_parameters[:user]
+        domain[:password] = resources[resource].original_parameters[:password]
+        domain[:port] = resources[resource].original_parameters[:port]
+        domain_list << domain
+      end
+    else
+      puts "INSTANCES_WITHOUT_RESOURCES"
+      domain_list = get_domain_list
+    end
+    domain_list.each do |int|
+      adjoin_properties = get_adjoin_properties(int[:user], int[:password], int[:name], int[:port])
       new(adjoin_properties)
     end
   end
@@ -156,6 +145,7 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
     puts "EXISTS: #{resource[:name]}"
     puts @property_hash[:ensure]
     @property_hash[:ensure] == :present
+    puts "EXISTS_END"
   end
 
   def initialize(value={})
@@ -183,16 +173,13 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
 #    false
 #  end
 
-  @test = "testing456"
-
   def create
-    puts "what"
+    puts "Creating:-"
 #    set_vars
-    puts @test
   end
 
   def destroy
-    puts "whatt"
+    puts "Destroying:-"
   end
 
 #  def user
@@ -258,4 +245,3 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
 #    context.notice("Deleting '#{name}'")
 #  end
 end
-puts "finished"
