@@ -38,6 +38,11 @@ require 'yaml'
 Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
   mk_resource_methods
 
+  def initialize(value={})
+    super(value)
+    @property_flush = {}
+  end
+
 
 #  Puppet::Provider::Ldap.manager
   #username = "tom"
@@ -125,14 +130,8 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
   end
 
   def exists?
-    puts @property_hash
     @property_hash[:ensure] == :present
   end
-
-#  def initialize(value={})
-#    super(value)
-#    @property_flush = {}
-#  end
 
 #  def exists?
 #    puts @ad_port
@@ -156,73 +155,56 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
 
   def create
     puts "Creating:-"
-    notice("creating")
+    @property_flush[:ensure] = :present
   end
 
   def destroy
     puts "Destroying:-"
+    @property_flush[:ensure] = :absent
   end
 
-#  def user
-#    puts "get user"
-#  end
+  def flush
+    set_ldap
 
-#  def user=(new_user)
-#    puts "new user #{new_user}"
-#  end
+    # Collect the resources again once they've been changed (that way `puppet
+    # resource` will show the correct values after changes have been made).
+    @property_hash = self.class.get_adjoin_properties(resource[:user], resource[:password], resource[:domain], resource[:port])
+  end
 
-#  def password
-#    puts "get password"
-#  end
+  def set_ldap
+    hostname = Socket.gethostname[/^[^.]+/]
+    fqdn = Socket.gethostname
+    computers_dn = "CN=Computers,DC=testing,DC=com"
+    computer_sam = "#{hostname}$"
+    os = "koji-linux-gnu"
+    service_principal = ["host/#{hostname}", "host/#{fqdn}", "RestrictedKrbHost/#{hostname}", "RestrictedKrbHost/#{fqdn}"]
+    dn = "CN=#{hostname},#{computers_dn}"
 
-#  def password=(new_pass)
-#    puts "new pass #{new_pass}"
-#  end
+    attr = {
+      :sAMAccountName => computer_sam,
+      :objectclass => ["computer", "top", "person", "user", "organizationalPerson"],
+      :userAccountControl => "69632", # /* WORKSTATION_TRUST_ACCOUNT | DONT_EXPIRE_PASSWD */
+ #    :msDS-supportedEncryptionTypes => [nil, nil],
+      :dNSHostName => fqdn,
+      :operatingSystem => os,
+      :servicePrincipalName => service_principal
+    }
 
-#  def port
-#    puts "get port"
-#  end
-
-#  def port=(new_port)
-#    puts "new port #{new_port}"
-#  end
-
-#  puts @resource.value(:domain)
-
-# Implementation for the ldap type using the Resource API.
-#class Puppet::Provider::Adjoin::Adjoin < Puppet::Provider::Ldap
-#  def exists?
-#  end
-
-#  def bind(context)
-#    #check that we can connect to the ldap server
-#    ldap Net::LDAP.new( :host => ad_host, :port => ad_port, :auth => auth )
-#  end
-
-#  def get(context)
-#    context.notice('Returning pre-canned example data')
-#    [
-#      {
-#        name: 'foo',
-#        ensure: 'present',
-#      },
-#      {
-#        name: 'bar',
-#        ensure: 'present',
-#      },
-#    ]
-#  end
-
-#  def create(context, name, should)
-#    puts("~~~~~~~~~~")
-#    context.notice("Creating '#{name}' with #{should.inspect}")
-#  end
-
-#  def update(context, name, should)
-#    context.notice("Updating '#{name}' with #{should.inspect}")
-#  end
-
-#  def delete(context, name)
-#    context.notice("Deleting '#{name}'")
-#  end
+    ldap = self.class.new_ldap(resource[:user], resource[:password], resource[:domain], resource[:port])
+    
+    if @property_flush[:ensure] == :absent
+      ldap.delete :dn => dn
+      return
+    end
+    if exists?
+#      ops = [
+#        [:add, :mail, "aliasaddress@example.com"],
+#        [:replace, :mail, ["newaddress@example.com", "newalias@example.com"]],
+#        [:delete, :sn, nil]
+#      ]
+#      ldap.modify :dn => dn, :operations => ops
+#      return
+    end
+    ldap.add :dn => dn, :attributes => attr
+  end
 end
