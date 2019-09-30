@@ -81,20 +81,9 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
   end
 
   def self.prefetch(resources)
-    if resource = resources["testing.com"]
-      puts resource.original_parameters[:user]
-      puts resource.provider 
-    end
     instances(resources).each do |prov|
-      puts prov.to_json
-      resource_name = prov[:name]
-      puts prov.keys
-      puts "~~~~~~#{resource_name}"
-      if resource = resources[resource_name]
-        puts "true"
-        puts resource.provider
+      if resource = resources[prov.domain]
         resource.provider = prov
-        puts "prov set"
       end
     end
   end
@@ -118,40 +107,32 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
   def self.instances(resources = nil)
     domain_list = []
     if resources
-      puts "INSTANCES_WITH_RESOURCES"
       resources.keys.each do |resource|
         domain = {}
-        domain[:name] = resource
+        domain[:domain] = resource
         domain[:user] = resources[resource].original_parameters[:user]
         domain[:password] = resources[resource].original_parameters[:password]
         domain[:port] = resources[resource].original_parameters[:port]
         domain_list << domain
       end
     else
-      puts "INSTANCES_WITHOUT_RESOURCES"
       domain_list = get_domain_list
     end
-    domain_list.each do |int|
-      adjoin_properties = get_adjoin_properties(int[:user], int[:password], int[:name], int[:port])
+    domain_list.collect do |int|
+      adjoin_properties = get_adjoin_properties(int[:user], int[:password], int[:domain], int[:port])
       new(adjoin_properties)
     end
   end
 
   def exists?
-    
-    puts "EXISTS_START"
-#    puts self.class.instances()
-    puts @provider_hash
-    puts "EXISTS: #{resource[:name]}"
-    puts @property_hash[:ensure]
+    puts @property_hash
     @property_hash[:ensure] == :present
-    puts "EXISTS_END"
   end
 
-  def initialize(value={})
-    super(value)
-    @property_flush = {}
-  end
+#  def initialize(value={})
+#    super(value)
+#    @property_flush = {}
+#  end
 
 #  def exists?
 #    puts @ad_port
@@ -175,7 +156,7 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
 
   def create
     puts "Creating:-"
-#    set_vars
+    notice("creating")
   end
 
   def destroy
