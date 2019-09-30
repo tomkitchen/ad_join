@@ -174,7 +174,14 @@ Puppet::Type.type(:adjoin).provide(:ad, parent: Puppet::Provider) do
   def set_ldap
     hostname = Socket.gethostname[/^[^.]+/]
     fqdn = Socket.gethostname
-    computers_dn = "CN=Computers,DC=testing,DC=com"
+    dc_string = ""
+    puts resource[:domain]
+    (resource[:domain].split".").each do |item|
+      dc_string.concat("DC=#{item},")
+    end
+    domain_dc = dc_string.chomp(",")
+    #computers_dn = "CN=Computers,DC=testing,DC=com"
+    computers_dn = "CN=Computers,#{domain_dc}"
     computer_sam = "#{hostname}$"
     os = "koji-linux-gnu"
     service_principal = ["host/#{hostname}", "host/#{fqdn}", "RestrictedKrbHost/#{hostname}", "RestrictedKrbHost/#{fqdn}"]
